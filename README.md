@@ -14,6 +14,7 @@
   <img alt="tests" src="https://img.shields.io/badge/tests-46%20passing-brightgreen">
   <img alt="typed" src="https://img.shields.io/badge/mypy-clean-brightgreen">
   <img alt="cost" src="https://img.shields.io/badge/runs-%240%20local-success">
+  <img alt="license" src="https://img.shields.io/badge/license-Apache--2.0-blue">
 </p>
 
 <!-- 📹 Drop your demo GIF here once recorded:
@@ -192,6 +193,14 @@ uv run ruff check .
 uv run mypy src
 LLM_PROVIDER=ollama uv run python scripts/eval.py   # accuracy on real docs
 ```
+
+## License & commercial use
+
+Open source under the **[Apache-2.0](./LICENSE)** license — use it, self-host it, build on it.
+
+A managed, hosted version (an API key instead of a local model, plus auth, usage metering,
+and scale) is on the way — the open core here is the same engine that will power it. If you'd
+like early access or want to talk integration, open an issue or reach out.
 
 ---
 
