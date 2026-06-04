@@ -11,7 +11,7 @@
 
 <p align="center">
   <img alt="Python 3.11+" src="https://img.shields.io/badge/python-3.11%2B-blue">
-  <img alt="tests" src="https://img.shields.io/badge/tests-27%20passing-brightgreen">
+  <img alt="tests" src="https://img.shields.io/badge/tests-33%20passing-brightgreen">
   <img alt="typed" src="https://img.shields.io/badge/mypy-clean-brightgreen">
   <img alt="cost" src="https://img.shields.io/badge/runs-%240%20local-success">
 </p>
@@ -79,6 +79,29 @@ curl -s -F 'file=@invoice.pdf' \
      http://127.0.0.1:8000/v1/extract | jq
 ```
 
+## Agent-native: the MCP server
+
+The same pipeline is exposed as an [MCP](https://modelcontextprotocol.io) tool, so an AI
+agent can extract documents directly — no HTTP glue. Point Claude Desktop (or any MCP
+client) at it:
+
+```jsonc
+// claude_desktop_config.json
+{
+  "mcpServers": {
+    "docapi": {
+      "command": "uv",
+      "args": ["run", "python", "-m", "docapi.mcp_server"],
+      "cwd": "/absolute/path/to/document_api_playbook"
+    }
+  }
+}
+```
+
+Then just ask: *"Extract the invoice number, date, and total from ~/receipt.pdf."* The agent
+calls the `extract_document` tool and gets back schema-valid JSON — or a structured error.
+REST and MCP are two faces of the **exact same** `extract_to_schema` core.
+
 ## Free & local with Ollama
 
 No API key, no cloud, no cost:
@@ -129,12 +152,12 @@ The only step that could cost money sits behind one env var:
 
 ## Status & roadmap
 
-Early, but **working end-to-end today**: core pipeline + REST API + reliability layer + 27 tests.
+Early, but **working end-to-end today**: core pipeline + REST API + MCP server + reliability layer + 33 tests.
 
 - [x] Extract-to-schema pipeline (REST `POST /v1/extract`)
 - [x] Free local model (Ollama) + deterministic date repair
+- [x] MCP `extract_document` tool (same pipeline, agent-native)
 - [ ] OCR fallback for scanned docs
-- [ ] MCP `extract_document` tool (same pipeline, agent-native)
 - [ ] Eval harness with real accuracy numbers
 - [ ] Auth, usage metering, deploy
 

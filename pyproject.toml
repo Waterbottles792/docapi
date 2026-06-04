@@ -12,7 +12,11 @@ dependencies = [
     "pdfplumber>=0.11",
     "pypdf>=4.2",
     "httpx>=0.27",
+    "mcp>=1.2",
 ]
+
+[project.scripts]
+docapi-mcp = "docapi.mcp_server:main"
 
 [project.optional-dependencies]
 dev = [
