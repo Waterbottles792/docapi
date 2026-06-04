@@ -1,0 +1,14 @@
+{
+  "document": "euro_invoice.pdf",
+  "note": "Slash DD/MM/YYYY date (03/04/2021) — ambiguous to a model, deterministic to us.",
+  "schema": {
+    "invoice_number": "string",
+    "invoice_date": "date",
+    "total_amount": "number"
+  },
+  "expected": {
+    "invoice_number": "LUM-9981",
+    "invoice_date": "2021-04-03",
+    "total_amount": 780.5
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "document": "acme_invoice.pdf",
+  "note": "Clean ISO date + a numeric total to pull out of surrounding text.",
+  "schema": {
+    "invoice_number": "string",
+    "invoice_date": "date",
+    "total_amount": "number"
+  },
+  "expected": {
+    "invoice_number": "INV-2024-042",
+    "invoice_date": "2024-03-15",
+    "total_amount": 3250.0
+  }
+}

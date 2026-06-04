@@ -11,7 +11,7 @@
 
 <p align="center">
   <img alt="Python 3.11+" src="https://img.shields.io/badge/python-3.11%2B-blue">
-  <img alt="tests" src="https://img.shields.io/badge/tests-33%20passing-brightgreen">
+  <img alt="tests" src="https://img.shields.io/badge/tests-46%20passing-brightgreen">
   <img alt="typed" src="https://img.shields.io/badge/mypy-clean-brightgreen">
   <img alt="cost" src="https://img.shields.io/badge/runs-%240%20local-success">
 </p>
@@ -150,15 +150,36 @@ The only step that could cost money sits behind one env var:
 - ✅ **Confidence signal** on every success
 - ⏳ OCR fallback for scans — *next*
 
+## Does it actually work? (eval harness)
+
+Tests prove the plumbing; the eval harness measures whether the pipeline returns the
+**correct values** on real documents — scoring each output field-by-field against a
+known-correct answer.
+
+```bash
+LLM_PROVIDER=ollama LLM_MODEL=llama3.2 uv run python scripts/eval.py
+#  ✓ acme_invoice    3/3 fields
+#  ✓ euro_invoice    3/3 fields    (slash-format date)
+#  ✓ nptel_receipt   3/3 fields    (the 2605 date case)
+#  ✓ resume          13/13 fields  (lists + nested objects, not an invoice)
+#  field accuracy: 100% (22/22 across 4 docs)
+```
+
+On the starter set, **100% field accuracy (22/22) on a free 3B local model** — across flat
+invoices *and* a résumé with skill lists, nested job history, and an experience count
+inferred from prose. That's a small, directional set — see [`evals/`](./evals) to grow it.
+The harness doubles as a regression gate: `--threshold 0.85` makes it exit non-zero if
+accuracy slips.
+
 ## Status & roadmap
 
-Early, but **working end-to-end today**: core pipeline + REST API + MCP server + reliability layer + 33 tests.
+Early, but **working end-to-end today**: core pipeline + REST API + MCP server + reliability layer + eval harness + 46 tests.
 
 - [x] Extract-to-schema pipeline (REST `POST /v1/extract`)
 - [x] Free local model (Ollama) + deterministic date repair
 - [x] MCP `extract_document` tool (same pipeline, agent-native)
+- [x] Eval harness with field-level accuracy + regression gate
 - [ ] OCR fallback for scanned docs
-- [ ] Eval harness with real accuracy numbers
 - [ ] Auth, usage metering, deploy
 
 See [`SPEC.md`](./SPEC.md) for the full v1 spec.
@@ -166,9 +187,10 @@ See [`SPEC.md`](./SPEC.md) for the full v1 spec.
 ## Develop
 
 ```bash
-uv run pytest        # 27 tests
+uv run pytest        # 46 tests
 uv run ruff check .
 uv run mypy src
+LLM_PROVIDER=ollama uv run python scripts/eval.py   # accuracy on real docs
 ```
 
 ---

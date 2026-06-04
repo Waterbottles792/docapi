@@ -1,0 +1,14 @@
+{
+  "document": "nptel_receipt.pdf",
+  "note": "Indian DD-MM-YYYY date (26-05-2025) — the deterministic date-repair case.",
+  "schema": {
+    "invoice_number": "string",
+    "invoice_date": "date",
+    "total_amount": "number"
+  },
+  "expected": {
+    "invoice_number": "pay_S6lDhbqEbjQ6Bs",
+    "invoice_date": "2025-05-26",
+    "total_amount": 1000.0
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "document": "resume.pdf",
+  "note": "Non-invoice shape: a resume. Exercises lists (skills, jobs), nested objects, an integer inferred from prose, and an optional phone field.",
+  "schema": {
+    "full_name": "string",
+    "email": "string",
+    "phone": "string?",
+    "years_experience": "integer",
+    "skills": ["string"],
+    "experience": [
+      { "company": "string", "title": "string" }
+    ]
+  },
+  "expected": {
+    "full_name": "Jane Doe",
+    "email": "jane.doe@example.com",
+    "phone": "+1 415 555 0132",
+    "years_experience": 8,
+    "skills": ["Python", "Go", "PostgreSQL", "Kubernetes", "gRPC"],
+    "experience": [
+      { "company": "Globex Corp", "title": "Staff Engineer" },
+      { "company": "Initech", "title": "Senior Engineer" }
+    ]
+  }
+}

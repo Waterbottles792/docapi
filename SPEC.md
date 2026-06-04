@@ -115,7 +115,7 @@ This is the product. Build it deliberately.
       errors ✅, limits ✅. OCR fallback for scans — TODO.
 - [~] **Phase 3 — REST.** `POST /v1/extract` ✅, `GET /healthz` ✅. Auth + metering + DB — TODO.
 - [x] **Phase 4 — MCP server.** `extract_document` tool calling the same pipeline.
-- [ ] **Phase 5 — Eval harness + docs.** Fixtures + accuracy gate.
+- [~] **Phase 5 — Eval harness + docs.** Fixtures + field-level accuracy + threshold gate ✅. Grow the fixture set.
 - [ ] **Phase 6 — Deploy.** Containerized; secrets via env.
 
 ---
