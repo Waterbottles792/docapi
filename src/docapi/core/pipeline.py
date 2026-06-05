@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from .dates import normalize_dates
 from .errors import ValidationFailed
 from .extractors import extract_text
+from .grounding import find_ungrounded
 from .ingest import ingest
 from .schema import build_model
 from .understand import Understander, get_understander
@@ -66,9 +67,24 @@ def extract_to_schema(
             partial_data=partial,
         )
 
+    data = obj.model_dump(mode="json")
+    confidence = _confidence(obj, model)
+
+    # Grounding: flag any string the model returned that isn't in the source text.
+    # Schema validation guarantees shape, not truth — this guards against hallucination
+    # (and surfaces silent context-window truncation, where late-page values go missing).
+    if options.get("grounding", "on") != "off":
+        ungrounded = find_ungrounded(data, model, content)
+        if ungrounded:
+            warnings.append(
+                "ungrounded_fields (not found in source text, possibly hallucinated): "
+                + ", ".join(ungrounded)
+            )
+            confidence = round(max(0.1, confidence - 0.25 * len(ungrounded)), 2)
+
     return ExtractResult(
-        data=obj.model_dump(mode="json"),
-        confidence=_confidence(obj, model),
+        data=data,
+        confidence=confidence,
         pages=info.pages,
         warnings=warnings,
     )
