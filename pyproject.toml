@@ -19,6 +19,9 @@ dependencies = [
 docapi-mcp = "docapi.mcp_server:main"
 
 [project.optional-dependencies]
+anthropic = [
+    "anthropic>=0.40",
+]
 dev = [
     "pytest>=8",
     "httpx>=0.27",

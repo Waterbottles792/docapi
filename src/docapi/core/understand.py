@@ -81,8 +81,11 @@ def get_understander() -> Understander:
             timeout=float(s.request_timeout_seconds),
         )
     if provider == "anthropic":
-        raise NotImplementedError(
-            "Provider 'anthropic' is not wired yet. Use LLM_PROVIDER=ollama (free) "
-            "or LLM_PROVIDER=stub."
-        )
+        if not s.anthropic_api_key:
+            raise ValueError(
+                "LLM_PROVIDER=anthropic requires ANTHROPIC_API_KEY to be set."
+            )
+        from .providers.anthropic import AnthropicUnderstander
+
+        return AnthropicUnderstander(model=s.llm_model, api_key=s.anthropic_api_key)
     raise ValueError(f"Unknown LLM_PROVIDER {provider!r}")

@@ -11,7 +11,7 @@
 
 <p align="center">
   <img alt="Python 3.11+" src="https://img.shields.io/badge/python-3.11%2B-blue">
-  <img alt="tests" src="https://img.shields.io/badge/tests-70%20passing-brightgreen">
+  <img alt="tests" src="https://img.shields.io/badge/tests-80%20passing-brightgreen">
   <img alt="typed" src="https://img.shields.io/badge/mypy-clean-brightgreen">
   <img alt="cost" src="https://img.shields.io/badge/runs-%240%20local-success">
   <img alt="license" src="https://img.shields.io/badge/license-Apache--2.0-blue">
@@ -140,7 +140,16 @@ The only step that could cost money sits behind one env var:
 |---|---|---|
 | `stub` (default) | $0 | placeholders — proves the plumbing |
 | `ollama` | $0 | real extraction, fully local |
-| `anthropic` | paid | highest quality (Claude Haiku is cheapest) — *seam ready, not wired* |
+| `anthropic` | paid | highest quality + big context (fast, no chunking needed) — Claude Haiku is cheapest |
+
+```bash
+# The paid, high-quality path — same engine, swapped behind one env var
+uv pip install -e ".[anthropic]"
+export LLM_PROVIDER=anthropic ANTHROPIC_API_KEY=sk-ant-...   # LLM_MODEL defaults to claude-haiku-4-5
+```
+
+Claude's 200K-token context means long documents extract in seconds without the local
+model's chunking — the same `extract_to_schema` core, just a faster, more capable understand step.
 
 ## Reliability engine
 
@@ -176,12 +185,14 @@ accuracy slips.
 
 ## Status & roadmap
 
-Early, but **working end-to-end today**: core pipeline + REST API + MCP server + reliability layer + eval harness + 70 tests.
+Early, but **working end-to-end today**: core pipeline + REST API + MCP server + reliability layer + eval harness + 80 tests.
 
 - [x] Extract-to-schema pipeline (REST `POST /v1/extract`)
 - [x] Free local model (Ollama) + deterministic date repair
 - [x] MCP `extract_document` tool (same pipeline, agent-native)
 - [x] Eval harness with field-level accuracy + regression gate
+- [x] Grounding (hallucination) check + long-document chunking
+- [x] Anthropic (Claude) provider for the paid, high-quality path
 - [ ] OCR fallback for scanned docs
 - [ ] Auth, usage metering, deploy
 
@@ -190,7 +201,7 @@ See [`SPEC.md`](./SPEC.md) for the full v1 spec.
 ## Develop
 
 ```bash
-uv run pytest        # 70 tests
+uv run pytest        # 80 tests
 uv run ruff check .
 uv run mypy src
 LLM_PROVIDER=ollama uv run python scripts/eval.py   # accuracy on real docs
