@@ -11,7 +11,7 @@
 
 <p align="center">
   <img alt="Python 3.11+" src="https://img.shields.io/badge/python-3.11%2B-blue">
-  <img alt="tests" src="https://img.shields.io/badge/tests-57%20passing-brightgreen">
+  <img alt="tests" src="https://img.shields.io/badge/tests-70%20passing-brightgreen">
   <img alt="typed" src="https://img.shields.io/badge/mypy-clean-brightgreen">
   <img alt="cost" src="https://img.shields.io/badge/runs-%240%20local-success">
   <img alt="license" src="https://img.shields.io/badge/license-Apache--2.0-blue">
@@ -145,7 +145,8 @@ The only step that could cost money sits behind one env var:
 ## Reliability engine
 
 - ✅ **Schema validation** on every output — never returns the wrong shape
-- ✅ **Grounding check** — every extracted string is verified against the source text; anything the model *invented* is flagged and confidence drops (catches hallucination, and surfaces silent context-window truncation on long docs)
+- ✅ **Grounding check** — every extracted string is verified against the source text; anything the model *invented* is flagged and confidence drops (catches hallucination)
+- ✅ **Long-document chunking** — big docs are split into windows that fit a small model's context, extracted independently, then merged (lists unioned, booleans OR-ed); no more silent truncation of late pages
 - ✅ **One corrective retry** feeding errors back to the model
 - ✅ **Deterministic date normalization** (no more `2605` bugs)
 - ✅ **Structured errors** with stable `type` + human message
@@ -175,7 +176,7 @@ accuracy slips.
 
 ## Status & roadmap
 
-Early, but **working end-to-end today**: core pipeline + REST API + MCP server + reliability layer + eval harness + 57 tests.
+Early, but **working end-to-end today**: core pipeline + REST API + MCP server + reliability layer + eval harness + 70 tests.
 
 - [x] Extract-to-schema pipeline (REST `POST /v1/extract`)
 - [x] Free local model (Ollama) + deterministic date repair
@@ -189,7 +190,7 @@ See [`SPEC.md`](./SPEC.md) for the full v1 spec.
 ## Develop
 
 ```bash
-uv run pytest        # 57 tests
+uv run pytest        # 70 tests
 uv run ruff check .
 uv run mypy src
 LLM_PROVIDER=ollama uv run python scripts/eval.py   # accuracy on real docs

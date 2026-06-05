@@ -18,7 +18,9 @@ _SYSTEM = (
     "You extract structured data from documents. "
     "Return ONLY a JSON object matching the provided schema. "
     "Use the document text as the source of truth. "
-    "If a field is not present in the document, use null."
+    "If a field is not present in the document, use null. "
+    "For boolean (true/false) fields, always answer true or false based on whether the "
+    "document supports it — never null. Answer false if there is no supporting evidence."
 )
 
 

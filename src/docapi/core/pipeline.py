@@ -9,12 +9,13 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from .chunking import CHUNK_CHARS, merge_partials, split_text
 from .dates import normalize_dates
 from .errors import ValidationFailed
 from .extractors import extract_text
 from .grounding import find_ungrounded
 from .ingest import ingest
-from .schema import build_model
+from .schema import build_model, make_all_optional
 from .understand import Understander, get_understander
 from .validate import validate
 
@@ -47,22 +48,19 @@ def extract_to_schema(
         # OCR fallback lands in Phase 2; note it rather than failing silently.
         warnings.append("ocr_fallback_not_available_in_this_build")
 
-    # understand + validate, with one corrective retry feeding errors back to the model.
-    obj = None
-    fields: list[str] = []
-    raw: dict = {}
-    feedback: str | None = None
-    for _ in range(2):
-        raw = understander.understand(content, model, feedback)
-        normalize_dates(raw, model)  # deterministic date repair before validation
-        obj, fields, feedback = validate(raw, model)
-        if obj is not None:
-            break
+    # Long docs blow past a small model's context window and get silently truncated, so
+    # split them into windows, extract each, and merge. Short docs take the direct path.
+    chunks = split_text(content) if len(content) > CHUNK_CHARS else [content]
+    if len(chunks) > 1:
+        warnings.append(f"long_document_chunked_into_{len(chunks)}_windows")
+        obj, fields, raw = _extract_chunked(understander, chunks, model)
+    else:
+        obj, fields, raw = _extract_single(understander, content, model)
 
     if obj is None:
         partial = {k: v for k, v in raw.items() if k not in fields}
         raise ValidationFailed(
-            f"Output did not match schema after retry. Problem fields: {', '.join(fields)}",
+            f"Output did not match schema. Problem fields: {', '.join(fields)}",
             fields=fields,
             partial_data=partial,
         )
@@ -88,6 +86,44 @@ def extract_to_schema(
         pages=info.pages,
         warnings=warnings,
     )
+
+
+def _extract_single(
+    understander: Understander, content: str, model: type[BaseModel]
+) -> tuple[Any, list[str], dict]:
+    """Understand + validate, with one corrective retry feeding errors back to the model."""
+    obj = None
+    fields: list[str] = []
+    raw: dict = {}
+    feedback: str | None = None
+    for _ in range(2):
+        raw = understander.understand(content, model, feedback)
+        normalize_dates(raw, model)  # deterministic date repair before validation
+        obj, fields, feedback = validate(raw, model)
+        if obj is not None:
+            break
+    return obj, fields, raw
+
+
+def _extract_chunked(
+    understander: Understander, chunks: list[str], model: type[BaseModel]
+) -> tuple[Any, list[str], dict]:
+    """Extract each window against an all-optional schema, then merge + validate strictly.
+
+    The relaxed schema lets a window legitimately return null for fields it doesn't
+    contain, instead of being forced by structured output to fabricate them.
+    """
+    relaxed = make_all_optional(model)
+    partials: list[dict] = []
+    for chunk in chunks:
+        raw = understander.understand(chunk, relaxed)
+        normalize_dates(raw, relaxed)
+        obj, _, _ = validate(raw, relaxed)
+        if obj is not None:
+            partials.append(obj.model_dump(mode="json"))
+    merged = merge_partials(partials, model)
+    obj, fields, _ = validate(merged, model)
+    return obj, fields, merged
 
 
 def _confidence(obj: Any, model: type[BaseModel]) -> float:
