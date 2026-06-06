@@ -17,9 +17,9 @@
   <img alt="license" src="https://img.shields.io/badge/license-Apache--2.0-blue">
 </p>
 
-<!-- 📹 Drop your demo GIF here once recorded:
-<p align="center"><img src="docs/demo.gif" alt="docapi demo" width="700"></p>
--->
+<p align="center">
+  🌐 <b><a href="https://docapi-one.vercel.app">Live site &amp; demo</a></b> &nbsp;·&nbsp; want the hosted version (no setup, just an API key)? <b><a href="https://docapi-one.vercel.app">Join the waitlist →</a></b>
+</p>
 
 ---
 
@@ -34,7 +34,7 @@ Every response is validated against *your* schema. If it can't match, you get a 
 ## What it does
 
 ```
-messy file  ──►  ingest → extract → understand → validate → normalize  ──►  schema-shaped JSON
+messy file  ──►  ingest → extract → understand → validate → normalize → ground  ──►  schema-shaped JSON
 ```
 
 A real example — an Indian receipt with a `DD-MM-YYYY` date that trips up language models:
@@ -61,30 +61,123 @@ Course Fee: Rs. 1000</pre></td>
 > The model alone reads `26-05-2025` as the year **2605**. docapi fixes it deterministically —
 > dates are a solved problem in code, so we don't make the model guess. *Reliability is the product.*
 
-## Quickstart
+---
+
+## 1. Install
+
+You need **Python 3.11+**. [`uv`](https://docs.astral.sh/uv/) is recommended (fast), but plain `pip` works too.
 
 ```bash
-uv venv && uv pip install -e ".[dev]"
+git clone https://github.com/Waterbottles792/docapi.git
+cd docapi
 
-# See it run instantly (free stub, no model needed)
+# with uv (recommended)
+uv venv
+uv pip install -e .
+
+# …or with plain pip
+python -m venv .venv && source .venv/bin/activate
+pip install -e .
+```
+
+Want to verify it installed? Run the offline demo — it needs no model and no key:
+
+```bash
+uv run python scripts/demo.py --stub      # (or: python scripts/demo.py --stub)
+```
+
+---
+
+## 2. Pick how the "understand" step runs
+
+docapi does everything deterministically **except** one step — *understand*, where a model maps
+messy text onto your fields. That single step is swappable behind one env var, `LLM_PROVIDER`:
+
+| `LLM_PROVIDER` | Needs a key? | Cost | Best for |
+|---|---|---|---|
+| `stub` *(default)* | no | $0 | kicking the tires — returns canned data, proves the plumbing |
+| `ollama` | no | $0 | **real extraction, 100% local & private** |
+| `anthropic` | yes (your Claude key) | paid | **speed + quality**, big context, long documents |
+
+Choose your path below. 👇
+
+### 🟢 If you DON'T have an API key — run it free & local with Ollama
+
+This is the recommended way to use docapi for free. It runs a small model on your own machine — no cloud, no cost, nothing leaves your computer.
+
+```bash
+# 1. Install Ollama:  https://ollama.com/download
+# 2. Pull a small model (~2 GB, one-time)
+ollama pull llama3.2
+
+# 3. Tell docapi to use it
+export LLM_PROVIDER=ollama
+export LLM_MODEL=llama3.2
+```
+
+That's it — every command below now does real extraction, locally and free. docapi hands the
+model a JSON Schema so it's *constrained* to emit matching JSON; combined with a corrective
+retry and deterministic date repair, even a 3B model extracts invoices reliably.
+
+> Long documents on a small local model can be slow (it chunks them to fit). For multi-page
+> docs at speed, use the Claude path below.
+
+### 🔵 If you HAVE a Claude (Anthropic) API key — use it for speed + quality
+
+```bash
+# 1. Install the optional Anthropic dependency
+uv pip install -e ".[anthropic]"        # (or: pip install -e ".[anthropic]")
+
+# 2. Point docapi at Claude with your key
+export LLM_PROVIDER=anthropic
+export ANTHROPIC_API_KEY=sk-ant-...      # your key from console.anthropic.com
+# optional: export LLM_MODEL=claude-haiku-4-5   (the default — cheapest & fast)
+```
+
+Claude's large context window means long documents extract in **seconds** with no chunking, at
+higher accuracy. Your key is read from the environment and never leaves your machine. Haiku is
+the cheapest model and plenty for most extraction; set `LLM_MODEL` to a Sonnet/Opus id for harder docs.
+
+### ⚪ Just want to see it work? — the stub (no model, no key)
+
+```bash
+unset LLM_PROVIDER            # or: export LLM_PROVIDER=stub
 uv run python scripts/demo.py --stub
+```
 
-# Real extraction with a free local model (see Ollama below)
-uv run python scripts/demo.py
-uv run python scripts/try_extract.py path/to/your.pdf --ollama
+Returns realistic canned data instantly so you can see the full pipeline without installing anything.
 
-# Or run the API + interactive docs
-uv run uvicorn docapi.main:app --reload   # http://127.0.0.1:8000/docs
+---
+
+## 3. Use it — four ways
+
+All four run the **exact same** `extract_to_schema` core, so the reliability guarantees are identical.
+
+### a) Try it on your own PDF (CLI)
+
+```bash
+uv run python scripts/try_extract.py path/to/your.pdf
+```
+
+(Uses whatever `LLM_PROVIDER` you set above. Add `--ollama` to force the local model for one run.)
+
+### b) REST API
+
+```bash
+uv run uvicorn docapi.main:app --reload     # interactive docs at http://127.0.0.1:8000/docs
+
 curl -s -F 'file=@invoice.pdf' \
-     -F 'schema={"invoice_number":"string","total":"number"}' \
+     -F 'schema={"invoice_number":"string","invoice_date":"date","total_amount":"number"}' \
      http://127.0.0.1:8000/v1/extract | jq
 ```
 
-## Agent-native: the MCP server
+Response: `{ "data": {...}, "confidence": 0.97, "pages": 1, "warnings": [] }` — or a structured
+error if it couldn't produce schema-valid data.
 
-The same pipeline is exposed as an [MCP](https://modelcontextprotocol.io) tool, so an AI
-agent can extract documents directly — no HTTP glue. Point Claude Desktop (or any MCP
-client) at it:
+### c) MCP tool (let an agent call it directly)
+
+The same pipeline is exposed as an [MCP](https://modelcontextprotocol.io) tool, so an AI agent
+can extract documents with no HTTP glue. Point Claude Desktop (or any MCP client) at it:
 
 ```jsonc
 // claude_desktop_config.json
@@ -93,28 +186,34 @@ client) at it:
     "docapi": {
       "command": "uv",
       "args": ["run", "python", "-m", "docapi.mcp_server"],
-      "cwd": "/absolute/path/to/document_api_playbook"
+      "cwd": "/absolute/path/to/docapi",
+      "env": { "LLM_PROVIDER": "ollama", "LLM_MODEL": "llama3.2" }
     }
   }
 }
 ```
 
-Then just ask: *"Extract the invoice number, date, and total from ~/receipt.pdf."* The agent
-calls the `extract_document` tool and gets back schema-valid JSON — or a structured error.
-REST and MCP are two faces of the **exact same** `extract_to_schema` core.
+Then just ask: *"Extract the invoice number, date, and total from ~/receipt.pdf."* The agent calls
+the `extract_document` tool and gets back schema-valid JSON. (Swap the `env` block for your
+Anthropic key to use Claude instead.)
 
-## Free & local with Ollama
+### d) In Python
 
-No API key, no cloud, no cost:
+```python
+from docapi.core.pipeline import extract_to_schema
 
-```bash
-ollama pull llama3.2          # ~2 GB, free
-export LLM_PROVIDER=ollama LLM_MODEL=llama3.2
+with open("invoice.pdf", "rb") as f:
+    result = extract_to_schema(
+        f.read(), "invoice.pdf",
+        {"invoice_number": "string", "invoice_date": "date", "total_amount": "number"},
+    )
+
+result.data        # → schema-valid dict
+result.confidence  # → 0.0–1.0
+result.warnings    # → e.g. ungrounded (possibly hallucinated) fields
 ```
 
-docapi hands Ollama the JSON Schema derived from your model, so a small local model is
-*constrained* to emit schema-matching JSON. Combined with one corrective retry + deterministic
-date repair, even a 3B model extracts invoices reliably.
+---
 
 ## The schema format
 
@@ -131,25 +230,6 @@ Map field names to types. Append `?` for optional. Arrays are `[ {item} ]`; nest
 ```
 
 Supported scalars: `string`, `number`, `integer`, `boolean`, `date` (ISO-8601).
-
-## The understand step is swappable
-
-The only step that could cost money sits behind one env var:
-
-| `LLM_PROVIDER` | Cost | Notes |
-|---|---|---|
-| `stub` (default) | $0 | placeholders — proves the plumbing |
-| `ollama` | $0 | real extraction, fully local |
-| `anthropic` | paid | highest quality + big context (fast, no chunking needed) — Claude Haiku is cheapest |
-
-```bash
-# The paid, high-quality path — same engine, swapped behind one env var
-uv pip install -e ".[anthropic]"
-export LLM_PROVIDER=anthropic ANTHROPIC_API_KEY=sk-ant-...   # LLM_MODEL defaults to claude-haiku-4-5
-```
-
-Claude's 200K-token context means long documents extract in seconds without the local
-model's chunking — the same `extract_to_schema` core, just a faster, more capable understand step.
 
 ## Reliability engine
 
@@ -183,9 +263,21 @@ inferred from prose. That's a small, directional set — see [`evals/`](./evals)
 The harness doubles as a regression gate: `--threshold 0.85` makes it exit non-zero if
 accuracy slips.
 
+## Develop / contribute
+
+```bash
+uv pip install -e ".[dev]"
+uv run pytest        # 80 tests
+uv run ruff check .
+uv run mypy src
+LLM_PROVIDER=ollama uv run python scripts/eval.py   # accuracy on real docs
+```
+
+Issues and PRs welcome. See [`SPEC.md`](./SPEC.md) for the full v1 spec.
+
 ## Status & roadmap
 
-Early, but **working end-to-end today**: core pipeline + REST API + MCP server + reliability layer + eval harness + 80 tests.
+Working end-to-end today: core pipeline + REST API + MCP server + reliability layer + eval harness + 80 tests.
 
 - [x] Extract-to-schema pipeline (REST `POST /v1/extract`)
 - [x] Free local model (Ollama) + deterministic date repair
@@ -194,26 +286,16 @@ Early, but **working end-to-end today**: core pipeline + REST API + MCP server +
 - [x] Grounding (hallucination) check + long-document chunking
 - [x] Anthropic (Claude) provider for the paid, high-quality path
 - [ ] OCR fallback for scanned docs
-- [ ] Auth, usage metering, deploy
-
-See [`SPEC.md`](./SPEC.md) for the full v1 spec.
-
-## Develop
-
-```bash
-uv run pytest        # 80 tests
-uv run ruff check .
-uv run mypy src
-LLM_PROVIDER=ollama uv run python scripts/eval.py   # accuracy on real docs
-```
+- [ ] Hosted version: accounts, API keys, usage metering
 
 ## License & commercial use
 
 Open source under the **[Apache-2.0](./LICENSE)** license — use it, self-host it, build on it.
 
-A managed, hosted version (an API key instead of a local model, plus auth, usage metering,
-and scale) is on the way — the open core here is the same engine that will power it. If you'd
-like early access or want to talk integration, open an issue or reach out.
+A managed, **hosted** version is on the way: an API key instead of running a model yourself, plus
+auth, usage metering, and scale — the same open core you see here is the engine behind it.
+
+**👉 Want early access? Join the waitlist at [docapi-one.vercel.app](https://docapi-one.vercel.app)** — or open an issue / reach out.
 
 ---
 
