@@ -10,3 +10,6 @@ dist/
 
 # generated sample
 sample_invoice.pdf
+
+# local backup of the pre-React static landing page (reference only)
+web_static_ref/
